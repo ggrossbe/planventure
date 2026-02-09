@@ -1,16 +1,27 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from config import Config
+from extensions import db, jwt
 
-app = Flask(__name__)
-CORS(app)
+def create_app(config_class=Config):
+    app = Flask(__name__)
+    
+    app.config.from_object(config_class)
 
-@app.route('/')
-def home():
-    return jsonify({"message": "Welcome to PlanVenture API"})
+    db.init_app(app)
+    jwt.init_app(app)
+    CORS(app)
 
-@app.route('/health')
-def health_check():
-    return jsonify({"status": "healthy"})
+    @app.route('/', methods=['GET'])
+    def index():
+        return jsonify({'status': 'ok', 'message': 'Planventure API'})
+
+    @app.route('/health', methods=['GET'])
+    def health():
+        return jsonify({'status': 'healthy'})
+
+    return app
 
 if __name__ == '__main__':
+    app = create_app()
     app.run(debug=True)
