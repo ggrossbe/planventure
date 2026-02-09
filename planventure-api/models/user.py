@@ -1,6 +1,6 @@
 from datetime import datetime
 from extensions import db
-import bcrypt
+from utils.password import hash_password, verify_password, validate_password_strength
 
 
 class User(db.Model):
@@ -18,13 +18,35 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.email}>'
 
-    def set_password(self, password):
-        """Hash and set the user's password."""
-        self.password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    def set_password(self, password, validate=True):
+        """
+        Hash and set the user's password.
+
+        Args:
+            password (str): The plain text password
+            validate (bool): Whether to validate password strength (default: True)
+
+        Raises:
+            ValueError: If password validation fails
+        """
+        if validate:
+            is_valid, error_message = validate_password_strength(password)
+            if not is_valid:
+                raise ValueError(error_message)
+
+        self.password_hash = hash_password(password)
 
     def check_password(self, password):
-        """Check if the provided password matches the hash."""
-        return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+        """
+        Check if the provided password matches the hash.
+
+        Args:
+            password (str): The plain text password to verify
+
+        Returns:
+            bool: True if password matches, False otherwise
+        """
+        return verify_password(password, self.password_hash)
 
     def to_dict(self):
         """Convert user object to dictionary (excluding password_hash)."""
