@@ -12,6 +12,10 @@ def create_app(config_class=Config):
     jwt.init_app(app)
     CORS(app)
 
+    # Import models after db initialization to avoid circular imports
+    with app.app_context():
+        from models import User, Trip
+
     @app.route('/', methods=['GET'])
     def index():
         return jsonify({'status': 'ok', 'message': 'Planventure API'})
