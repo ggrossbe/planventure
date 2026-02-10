@@ -4,6 +4,11 @@ from models import User
 from utils.validation import validate_registration_data, validate_email
 from utils.jwt_utils import generate_tokens
 from sqlalchemy.exc import IntegrityError
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+import datetime
+from functools import wraps
+from config import Config
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
@@ -138,3 +143,53 @@ def check_email():
             'error': 'server_error',
             'message': 'An error occurred while checking email'
         }), 500
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """Login route that generates JWT token"""
+    data = request.get_json()
+    
+    if not data or not data.get('email') or not data.get('password'):
+        return jsonify({'error': 'Email and password required'}), 400
+    
+    # Find user by email
+    user = User.query.filter_by(email=data['email']).first()
+    
+    # Generate JWT token
+    token = create_access_token(identity=str(user.id), expires_delta=Config.JWT_ACCESS_TOKEN_EXPIRES)
+    
+    return jsonify({
+        'token': token,
+        'message': 'Login successful'
+    }), 200
+
+
+# Decorator to protect routes
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            verify_jwt_in_request()
+            current_user_id = get_jwt_identity()
+            
+            # Check if user still exists in database
+            user = User.query.get(current_user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 401
+                
+            return f(*args, **kwargs)
+        except Exception as e:
+            return jsonify({"error": "Invalid or expired token"}), 401
+    return decorated
+
+
+# Example protected route
+@auth_bp.route('/protected', methods=['GET'])
+@jwt_required()
+def protected_route():
+    # Access the identity of the current user with get_jwt_identity
+    current_user = get_jwt_identity()
+    user = User.query.get(current_user)
+    if not user:
+        return jsonify({"error": "User not found"}), 401
+    return jsonify(logged_in_as=user.email), 200
