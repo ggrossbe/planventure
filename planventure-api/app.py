@@ -2,7 +2,6 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 from extensions import db, jwt
-from routes.auth import auth_bp
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -18,6 +17,7 @@ def create_app(config_class=Config):
         from models import User, Trip
 
     # Register blueprints
+    from routes import auth_bp
     app.register_blueprint(auth_bp)
 
     # JWT error handlers

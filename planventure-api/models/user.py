@@ -56,3 +56,19 @@ class User(db.Model):
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
+
+    def generate_auth_token(self, expires_in=3600):
+        """Generate a JWT token for the user."""
+        from utils.jwt_utils import generate_tokens
+        return generate_tokens(self.id, additional_claims={'email': self.email}, expires_in=expires_in)
+    
+    @staticmethod
+    def verify_auth_token(token):
+        """Verify a JWT token and return the user if valid."""
+        from utils.jwt_utils import verify_token
+        try:
+            payload = verify_token(token)
+            user_id = payload.get('sub')
+            return User.query.get(user_id)
+        except Exception:
+            return None
