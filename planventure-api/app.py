@@ -17,8 +17,9 @@ def create_app(config_class=Config):
         from models import User, Trip
 
     # Register blueprints
-    from routes import auth_bp
+    from routes import auth_bp, trips_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(trips_bp)
 
     # JWT error handlers
     @jwt.expired_token_loader
